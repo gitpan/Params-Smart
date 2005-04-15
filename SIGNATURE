@@ -1,0 +1,31 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.44.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It will check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+SHA1 f2d960cbc7e1b50b8825d5ceb0262d0a04a0ea90 Build.PL
+SHA1 9354ba2c625cb59abd9668ba7bcc54b898912619 Changes
+SHA1 911031b966f2b596013cddacd7ee1769bff9c832 MANIFEST
+SHA1 7023bd46b95a9efa88082889a3175fe30a8e394a META.yml
+SHA1 8c3376cf7a140cf21499f8d20c1526591bf90f2a Makefile.PL
+SHA1 04df1db05e554955c9964f0e6d28c89a07b48f0a README
+SHA1 348066ceef758f9a9bccd61008855c08d48dd080 lib/Params/Smart.pm
+SHA1 8efc8acac6d33763b16c54c7292a1783929eda46 t/Params-Smart.t
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.5 (MingW32)
+
+iD8DBQFCYE9pV485gMKcmRARAg3gAKDwg4BmO4Mox7wCzTzEQ344Sl8i7QCgu0NL
+yr6zW9tsb8al24oJ3Js6IBE=
+=QmwH
+-----END PGP SIGNATURE-----
