@@ -28,10 +28,10 @@ DESCRIPTION
     parsed: usually you just specify the void list @_.
 
     By default, parameters are assumed to be optional. (You may insert a
-    question mark before the name, ""?name"" to emphasize that it is
-    optional for anyone reading the code.)
+    question mark before the name, "?name" to emphasize that it is optional
+    for anyone reading the code.)
 
-    If a plus sign is added before the name, ""+name"" then it will be
+    If a plus sign is added before the name, "+name" then it will be
     considered a required argument. No required argument can follow an
     optional argument.
 
@@ -65,9 +65,6 @@ AUTHOR
   Suggestions and Bug Reporting
     Feedback is always welcome. Please use the CPAN Request Tracker at
     <http://rt.cpan.org> to submit bug reports.
-
-    There is now a SourceForge project for this module at
-    <http://sourceforge.net/projects/mozilla-backup/>
 
 LICENSE
     Copyright (c) 2005 Robert Rothenberg. All rights reserved. This program

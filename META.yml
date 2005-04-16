@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Params-Smart
-version: 0.01
+version: 0.02
 author:
   - Robert Rothenberg <rrwo at cpan.org>
 abstract: |-
@@ -14,5 +14,5 @@ build_requires:
 provides:
   Params::Smart:
     file: lib/Params/Smart.pm
-    version: 0.01
+    version: 0.02
 generated_by: Module::Build version 0.2607

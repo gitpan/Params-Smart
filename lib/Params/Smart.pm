@@ -11,7 +11,7 @@ require Exporter;
 our @ISA    = qw( Exporter );
 our @EXPORT = qw( Params );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use constant TYPO_THRESHOLD => 1;
 
@@ -171,10 +171,10 @@ should be given in subroutine calls.  C<@args> is the list of argument
 to be parsed: usually you just specify the void list C<@_>.
 
 By default, parameters are assumed to be optional. (You may insert a
-question mark before the name, "C<?name>" to emphasize that it is
+question mark before the name, C<?name> to emphasize that it is
 optional for anyone reading the code.)
 
-If a plus sign is added before the name, "C<+name>" then it will be
+If a plus sign is added before the name, C<+name> then it will be
 considered a required argument.  No required argument can follow an
 optional argument.
 
@@ -212,9 +212,6 @@ Robert Rothenberg <rrwo at cpan.org>
 
 Feedback is always welcome.  Please use the CPAN Request Tracker at
 L<http://rt.cpan.org> to submit bug reports.
-
-There is now a SourceForge project for this module at
-L<http://sourceforge.net/projects/mozilla-backup/>
 
 =head1 LICENSE
 

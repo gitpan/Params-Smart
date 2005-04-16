@@ -1,5 +1,9 @@
 Revision history for Perl extension Params::Smart.
 
+0.02  Fri Apr 15 2005
+	- corrected minor typos in POD
+	- removed reference to (wrong) SourceForge project
+
 0.01  Fri Apr 15 23:24:25 2005
 	- original version; created by h2xs 1.23 with options
 		-X -b 5.6.0 -n Params::Smart -v 0.01
