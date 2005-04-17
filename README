@@ -5,7 +5,7 @@ SYNOPSIS
       use Params::Smart;
 
       sub my_sub {
-        %args = Params(qw( +foo +bar ?bo ?baz ))->args(@_);
+        %args = Params(qw( foo bar ?bo ?baz ))->args(@_);
 
         ...
       }
@@ -27,37 +27,60 @@ DESCRIPTION
     should be given in subroutine calls. @args is the list of argument to be
     parsed: usually you just specify the void list @_.
 
-    By default, parameters are assumed to be optional. (You may insert a
-    question mark before the name, "?name" to emphasize that it is optional
-    for anyone reading the code.)
+        Paramaters are required by default. To change this behavior, add the
+        following symbols before the names:
 
-    If a plus sign is added before the name, "+name" then it will be
-    considered a required argument. No required argument can follow an
-    optional argument.
+    ?   The parameter is optional, e.g. "?name".
 
-    If an asterisk is specified, the parameter will slurp all remaining
-    arguments into a list reference.
+    +   The parameter must only be specified as a named parameter. Note that
+        it is not necessarily optional. You must explicitly state that, e.g.
+        "+?name".
 
-    The resulting hash contains appropriate values.
+    *   The parameter "slurps" the rest of the arguments into an array
+        reference, e.g. *name. It is not assumed to be optional unless there
+        is a question-mark before it.
 
-    It may also contain additional keys which begin with an underscore.
-    These are internal/diagnostic values.
+    %values contains the keys of specified arguments, with their values. It
+    may also contain additional keys which begin with an underscore. These
+    are internal/diagnostic values:
 
-    Because Perl5 treats hashes as lists, this module attempts to interpret
-    the arguments as a hash of named parameters first. If one hash key does
-    not match, it will assume there is a typo and return an error. If more
-    do not match, it will assume these are positional parameters instead.
-    The downside is that if your positional parameters coincidentally match
-    parameter names, you will have some frustrating bugs. In such cases you
-    can check the "_named" parameter.
+    _named
+        True if the parameters were treated as named, false if positional.
 
 CAVEATS
     *This is an experimental module, and the interface may change.* More
     likely additional features will be added.
 
+    Because Perl5 treats hashes as lists, this module attempts to interpret
+    the arguments as a hash of named parameters first. If some hash keys
+    match, and some do not, then it assumes there has been an error. If no
+    keys match, then it assumes that it the arguments are positional.
+
+    In theory one can pass positional arguments where every other argument
+    matches a hash key, or one can pass a hash with the wrong keys (possible
+    if one copies/pastes code from the wrong call) and so it is treated as a
+    positional argument.
+
+    This is probably uncommon for most data, but subroutines should take
+    extra care to check if values are within allowed ranges. There may even
+    be security issues if users can blindly specify data that they know can
+    cause this confusion. If the application is critical enough, then this
+    may not be an appropriate module to use (at least not until the ability
+    to distinguish between lists and hashes is improved).
+
+    To diagnose potential bugs, or to enforce named or positional calling
+    one can check the "_named" parameter.
+
 SEE ALSO
-      Params::Validate
-      Perl6::Subs
+    This module is similar in function to Getargs::Mixed but does not
+    require named parameters to have an initial dash ('-'). It also has some
+    additional features.
+
+    The syntax of the paramater templates is inspired by Perl6::Subs, though
+    not necessarily compatible. (See also *Apocalypse 6* in Perl6::Bible).
+
+    Params::Validate is useful for (additional) parameter validation beyond
+    what this module is capable of.
 
 AUTHOR
     Robert Rothenberg <rrwo at cpan.org>

@@ -6,6 +6,7 @@ WriteMakefile
           'VERSION_FROM' => 'lib/Params/Smart.pm',
           'PREREQ_PM' => {
                            'Carp' => '0',
+                           'Memoize' => '0',
                            'Test::More' => '0'
                          },
           'INSTALLDIRS' => 'site',

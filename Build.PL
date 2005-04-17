@@ -7,6 +7,7 @@ my $build = Module::Build->new
      requires => {
        'perl'             => '5.6.0',
        'Carp'             => 0,
+       'Memoize'          => 0,
 #       'Params::Validate' => 0,
      },
      recommends => {

@@ -1,5 +1,17 @@
 Revision history for Perl extension Params::Smart.
 
+0.03  Sun Apr 17 2005
+	- updated documentation
+	- added hooks for type support
+	- named parameter calls may have an initial '-'
+	* parameters are now required by default
+	* '+' now requires that a parameter be named
+	- fixed bug with assigning default values
+	- fixed bug with using 2 positional parameters
+	- added more tests
+	- Params is memoized
+	- noted Getargs::Mixed in SEE ALSO of POD
+
 0.02  Fri Apr 15 2005
 	- corrected minor typos in POD
 	- removed reference to (wrong) SourceForge project
