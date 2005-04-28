@@ -1,12 +1,36 @@
 NAME
     Params::Smart - use both positional and named arguments in a subroutine
 
+REQUIREMENTS
+    The following non-core modules are required:
+
+      Regexp::Common
+
+Installation
+    Installation can be done using the traditional Makefile.PL or the
+    newer Build.PL methods.
+
+    Using Makefile.PL:
+
+      perl Makefile.PL
+      make
+      make test
+      make install
+
+    (On Windows platforms you should use nmake instead.)
+
+    Using Build.PL (if you have Module::Build installed):
+
+      perl Build.PL
+      perl Build
+      perl Build test
+      perl Build install
+
 SYNOPSIS
-      use Params::Smart;
+      use Params::Smart 0.04;
 
       sub my_sub {
         %args = Params(qw( foo bar ?bo ?baz ))->args(@_);
-
         ...
       }
 
@@ -15,69 +39,55 @@ SYNOPSIS
       my_sub(1, 2, 3);                   # same, with positional args
 
 DESCRIPTION
-    This module allows you to have subroutines which take both named and
-    positional arguments without having to use a changed syntax and source
-    filters.
+    This module provides "smart" parameter handling for subroutines without
+    having to use a changed syntax or source filters. Features include:
 
-    Usage is as follows:
+    *   Mixed use of named and positional parameters.
 
-      %values = Params( @template )->( @args );
+    *   Type checking and coercion through callbacks.
 
-    @template specifies the names of parameters in the order that they
-    should be given in subroutine calls. @args is the list of argument to be
-    parsed: usually you just specify the void list @_.
+    *   Dyanmic paramaters configured from callbacks.
 
-        Paramaters are required by default. To change this behavior, add the
-        following symbols before the names:
+    *   Memoization of "Simple Paramater Templates".
 
-    ?   The parameter is optional, e.g. "?name".
+    See the module documentation for more information.
 
-    +   The parameter must only be specified as a named parameter. Note that
-        it is not necessarily optional. You must explicitly state that, e.g.
-        "+?name".
+REVISION HISTORY
+    Changes since previous release:
 
-    *   The parameter "slurps" the rest of the arguments into an array
-        reference, e.g. *name. It is not assumed to be optional unless there
-        is a question-mark before it.
+    0.04  Thu Apr 28 2005
+	- rewrote documentation
+	- uses Regexp::Common
+	- defaults can have double-quote-delimited strings
+	- changed format of error messages
+	- added friendlier usage message on error
+	- parameter name aliases allowed
+	- callbacks can modify parameters
+	- use custom memoization due to issues with callbacks
+	- implemented callbacks
+	- misc optimizations/tweaks
+        - added hashref params as alternative to strings
+	- added parse_param and set_param methods
+	- additional information documented
+	- fixed formatting mistake in POD
 
-    %values contains the keys of specified arguments, with their values. It
-    may also contain additional keys which begin with an underscore. These
-    are internal/diagnostic values:
-
-    _named
-        True if the parameters were treated as named, false if positional.
+    See the Changes file included with the distribution.
 
 CAVEATS
     *This is an experimental module, and the interface may change.* More
     likely additional features will be added.
 
-    Because Perl5 treats hashes as lists, this module attempts to interpret
-    the arguments as a hash of named parameters first. If some hash keys
-    match, and some do not, then it assumes there has been an error. If no
-    keys match, then it assumes that it the arguments are positional.
-
-    In theory one can pass positional arguments where every other argument
-    matches a hash key, or one can pass a hash with the wrong keys (possible
-    if one copies/pastes code from the wrong call) and so it is treated as a
-    positional argument.
-
-    This is probably uncommon for most data, but subroutines should take
-    extra care to check if values are within allowed ranges. There may even
-    be security issues if users can blindly specify data that they know can
-    cause this confusion. If the application is critical enough, then this
-    may not be an appropriate module to use (at least not until the ability
-    to distinguish between lists and hashes is improved).
-
-    To diagnose potential bugs, or to enforce named or positional calling
-    one can check the "_named" parameter.
-
 SEE ALSO
-    This module is similar in function to Getargs::Mixed but does not
-    require named parameters to have an initial dash ('-'). It also has some
-    additional features.
+    This module is superficially similar in function to Getargs::Mixed but
+    does not require named parameters to have an initial dash ('-').
+
+    Sub::NamedParams will create a named-parameter wrapper around
+    subroutines which use positional parameters.
 
     The syntax of the paramater templates is inspired by Perl6::Subs, though
     not necessarily compatible. (See also *Apocalypse 6* in Perl6::Bible).
+
+    Sub::Usage inspired the error-messages returned by calls to arg().
 
     Params::Validate is useful for (additional) parameter validation beyond
     what this module is capable of.

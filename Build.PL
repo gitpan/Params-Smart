@@ -7,8 +7,7 @@ my $build = Module::Build->new
      requires => {
        'perl'             => '5.6.0',
        'Carp'             => 0,
-       'Memoize'          => 0,
-#       'Params::Validate' => 0,
+       'Regexp::Common'   => 1.8,
      },
      recommends => {
 #        'Test::Pod::Coverage' => 0,
@@ -18,7 +17,7 @@ my $build = Module::Build->new
      build_requires => {
        'Test::More'     => 0,
      },
-     create_readme      => 1,
+     create_readme      => 0,
      create_makefile_pl => 'traditional',
      dist_author        => 'Robert Rothenberg <rrwo at cpan.org>',
      sign               => 1,

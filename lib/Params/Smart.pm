@@ -5,32 +5,43 @@ use strict;
 use warnings; # ::register __PACKAGE__;
 
 use Carp;
-use Memoize;
+use Regexp::Common qw( delimited );
 
 require Exporter;
 
 our @ISA    = qw( Exporter );
 our @EXPORT = qw( Params );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
-# use constant TYPO_THRESHOLD => 1;
+sub parse_param {
+  my $self  = shift;
+  my $param = shift;
 
-sub new {
-  my $class = shift;
-  my $self  = {
-    names => { },
-    order => [ ],
-  };
-
-  my $index = 0;
-  my $last;
- SLURP: while (my $param = shift) {
-    $param =~ /^([\?\+\*]+)?([\@\$\%])?(\w+)(\=.+)?/;
+  local ($_);
+  if (ref($param) eq "HASH") {
+    # we only want to pass supported parameters
+    my $info = {
+      _parsed => 0,
+    };
+    foreach (qw( 
+         name type default required name_only slurp
+         callback comment
+     )) {
+      $info->{$_} = $param->{$_};
+    }
+    return $info;
+  } elsif (!ref($param)) {
+    $param =~ /^([\?\+\*]+)?([\@\$\%\&])?([\w\|]+)(\=.+)?/;
     my $mod  = $1 || "";
     my $type = $2;
     my $name = $3;
     my $def  = substr($4,1) if (defined $4);
+
+    if ((defined $def) &&
+	($def =~ /$RE{delimited}{-delim=>'"'}{-esc}{-keep}/)) {
+      $def = $3;
+    }
 
     unless (defined $name) {
       croak "malformed parameter $param";
@@ -50,69 +61,216 @@ sub new {
         required  => (($mod !~ /\?/) || 0),
         name_only => (($mod =~ /\+/) || 0),
 	slurp     => (($mod =~ /\*/) || 0),
+        callback  => undef, # sub { return $_[2]; },
+        comment   => $name,
+        _parsed   => 1,
       };
-      push @{$self->{order}}, $name unless ($info->{name_only});
-      $self->{names}->{$name}  = $info;
+      return $info;
+    }
+  } else {
+    croak "invalid parameter";
+  }
+  return;
+}
+
+sub set_param {
+  my $self = shift;
+  my $info = shift;
+  croak "invalid parameter" unless (ref($info) eq "HASH");
+
+  # TODO - name_only should be set if this is dynamic
+
+  $self->{dynamic}   ||= ($self->{lock});
+  $info->{name_only} ||= ($self->{dynamic});
+
+  my @names = split /\|/, $info->{name};
+  $info->{name} = undef;
+
+  do {
+    my $name = shift @names;
+    $info->{name} = $name, unless (defined $info->{name});
+    if (exists $self->{names}->{$name}) {
+      $self->{names}->{$name} = $info;
+    }
+    else {
+      my $index = scalar(@{$self->{order}});
+      unless ($info->{name_only}) {
+        $info->{_index} = $index;
+        $self->{order}->[$index] = $name;
+      }
+      $self->{names}->{$name} = $info;
+    }
+    if (@names) {
+      $info->{name_only} ||= 1;
+      $info->{required}    = 0;
+      delete $info->{default};
+    }
+  } while (@names);
+  return $info;
+}
+
+sub new {
+  my $class = shift;
+  my $self  = {
+    names   => { },
+    order   => [ ],
+    lock    => 0,
+    dynamic => 0,
+  };
+  bless $self, $class;
+
+  my $index = 0;
+  my $last;
+ SLURP: while (my $param = shift) {
+
+    my $info = $self->parse_param($param);
+    if ($info) {
       if ($info->{slurp}) {
 	croak "no parameters can follow a slurp" if (@_);
-	last SLURP;
       }
-
       if ($last && $info->{required} && (!$last->{required})) {
 	croak "a required parameter cannot follow an optional parameter";
       }
+      if ($info->{name_only} && $info->{slurp}) {
+	croak "a paramater cannot be named_only and a slurp";
+      }
+      if ($last && ($info->{_parsed} != $last->{_parsed})) {
+        croak "cannot mix parsed and non-parsed parameters";
+      }
+      $self->set_param($info);
       $last = $info;
+    }
+    else {
+      croak "unknown error";
     }
     $index++;
   }
 
-  bless $self, $class;
+  $self->{lock} = 1;
   return $self;
 }
 
-# We have the exported Params() function rather than requiring calls to
-# Params::Smart->new() so that the code looks a lot cleaner.
+# We have the exported Params() function rather than requiring calls
+# to Params::Smart->new() so that the code looks a lot cleaner.  It's
+# also a wrapper for a home-grown memoization function. (We cannot use
+# Memoize because callbacks become problematic.)
+
+my %Memoization = ( );
 
 sub Params {
-  return __PACKAGE__->new(@_);
+
+  # It doesn't seem worth serialising a list of hashes here. FNORJD!
+  # We cannot mix and match hash refs with strings in Params list.
+
+  if (ref $_[0]) {
+    return  __PACKAGE__->new(@_);
+  } else {
+    my $key = join $;, @_;
+    return $Memoization{$key} ||= __PACKAGE__->new(@_);
+  }
 }
 
-# Since it's a bit of work to encode the parameters, we memoize them.
+# Note: usage does not display aliases, nor named_only parameters
 
-BEGIN {
-  memoize("Params");
+sub _usage {
+  my $self  = shift;
+  my $error = shift;
+  my $named = shift || 0;
+
+  local($_);
+
+  my $caller = (caller(2))[3] || "";
+
+  my $usage = $error . ";\nusage: $caller(";
+
+  # TODO - handle named parameters etc.
+
+  $usage .=
+      join(", ", map {
+        my $name = $_;
+        $name = "?$name", unless ($self->{names}->{$name}->{required});
+        $name = "*$name", if ($self->{names}->{$name}->{slurp});
+        $name;
+      } @{$self->{order}}) . ") ";
+
+
+  croak $usage;
+}
+
+# The callback is expected to coerce the data or return an error
+
+sub _run_callback {
+  my $self = $_[0];
+  my $name = $_[1];
+  my $callback = $_[0]->{names}->{$name}->{callback};
+  if (ref($callback) eq "CODE") {
+    return &{$callback}(@_);
+  }
+  else {
+    croak "expected code reference for callback";
+  }
 }
 
 sub args {
   my $self = shift;
+
   my %vals = ( );
 
   # $vals{_args} = [ @_ ];
 
   my $named = !(@_ % 2);
   if ($named) {
-    my @unknown = ( );
+    my %unknown = ( );
     my $i = 0;
     while ($named && ($i < @_)) {
       my $n = $_[$i];
       $n = substr($n,1) if ($n =~ /^\-/);
       if (exists $self->{names}->{$n}) {
-	$vals{$n} = $_[$i+1];
+        my $truename = $self->{names}->{$n}->{name};
+	$vals{$truename} = $_[$i+1];
+        if ($self->{names}->{$truename}->{callback}) {
+	  $@ = undef;
+	  eval {
+	    $vals{$truename} =
+	      $self->_run_callback($truename, $vals{$truename}, \%vals);
+	  };
+	  $self->_usage($@,$named) if ($@);
+	}
       } else {
-	push @unknown, $n;
-# 	if ((@unknown > TYPO_THRESHOLD) || ((TYPO_THRESHOLD*2) >= @_)) {
-# 	  $named = 0;
-# 	  %vals = ( );
-# 	  last;
-# 	}
+	$unknown{$n} = $i;
       }
       $i += 2;
     }
 
-    if ($named && @unknown && (keys %vals)) {
-      croak "unrecognized paramaters: @unknown";
+    # As long as there are unknown keys and dynamically-added
+    # parameters, we'll keep re-checking.
+
+    while ($self->{dynamic}) {
+      $self->{dynamic} = 0;
+      if ($named && (keys %unknown)) {
+        foreach my $n (keys %unknown) {
+	  if (exists $self->{names}->{$n}) {
+            my $truename = $self->{names}->{$n}->{name};
+	    $vals{$truename} = $_[$unknown{$n}+1];
+	    if ($self->{names}->{$truename}->{callback}) {
+	      $@ = undef;
+	      eval {
+		$vals{$truename} =
+		  $self->_run_callback($truename, $vals{$truename}, \%vals);
+	      };
+	      $self->_usage($@,$named) if ($@);
+	    }
+	    delete $unknown{$n};
+	  }
+        }
+      }
     }
-    elsif ($named && @unknown) {
+
+    if ($named && (keys %unknown) && (keys %vals)) {
+      $self->_usage("unrecognized paramaters: " .
+	join(" ", map { "\"$_\"" } keys %unknown), $named);
+    }
+    elsif ($named && (keys %unknown)) {
       $named = 0;
       %vals = ( );
     }
@@ -121,14 +279,24 @@ sub args {
   unless ($named) {
     my $i = 0;
     while ($i < @_) {
-      unless (defined $self->{order}->[$i]) {
-	croak "too many arguments";
+      my $n = $self->{order}->[$i];
+      unless (defined $n) {
+	$self->_usage("too many arguments",$named);
       }
-      if ($self->{names}->{$self->{order}->[$i]}->{slurp}) {
-	$vals{ $self->{order}->[$i] } = [ @_[$i..$#_] ];
-	last;
+      my $truename = $self->{names}->{$n}->{name};
+      if ($self->{names}->{$truename}->{slurp}) {
+	$vals{$truename} = [ @_[$i..$#_] ];
+	$i = $#_; # we don't want to use 'last'
       } else {
-	$vals{ $self->{order}->[$i] } = $_[$i];
+	$vals{$truename} = $_[$i];
+      }
+      if ($self->{names}->{$truename}->{callback}) {
+	$@ = undef;
+	eval {
+	  $vals{$truename} =
+	    $self->_run_callback($truename, $vals{$truename}, \%vals);
+	};
+	$self->_usage($@,$named) if ($@);
       }
       $i++;
     }
@@ -139,10 +307,11 @@ sub args {
   foreach my $name (keys %{ $self->{names} }) {
     my $info = $self->{names}->{$name};
     unless (exists($vals{$name})) {
-      $vals{$name} = $info->{default}, if (defined $info->{default});
+      $vals{$name} = $info->{default},
+        if (($name eq $info->{name}) && (defined $info->{default}));
     }
     if ($info->{required} && !exists($vals{$name})) {
-      croak "required parameter not defined: $name";
+      $self->_usage("missing required parameter \"$name\"", $named);
     }
   }
 
@@ -153,6 +322,7 @@ sub args {
 
 
 1;
+
 __END__
 
 
@@ -162,11 +332,10 @@ Params::Smart - use both positional and named arguments in a subroutine
 
 =head1 SYNOPSIS
 
-  use Params::Smart;
+  use Params::Smart 0.04;
 
   sub my_sub {
     %args = Params(qw( foo bar ?bo ?baz ))->args(@_);
-
     ...
   }
 
@@ -176,52 +345,257 @@ Params::Smart - use both positional and named arguments in a subroutine
 
 =head1 DESCRIPTION
 
-This module allows you to have subroutines which take both named
-and positional arguments without having to use a changed syntax
-and source filters.
-
-Usage is as follows:
-
-  %values = Params( @template )->( @args );
-
-C<@template> specifies the names of parameters in the order that they
-should be given in subroutine calls.  C<@args> is the list of argument
-to be parsed: usually you just specify the void list C<@_>.
+This module provides "smart" parameter handling for subroutines without having to use a changed syntax or source filters. Features include:
 
 =over
 
-Paramaters are required by default. To change this behavior, add the 
-following symbols before the names:
+=item *
 
-=item ?
-
-The parameter is optional, e.g. C<?name>.
-
-=item +
-
-The parameter must only be specified as a named parameter. Note that
-it is not necessarily optional. You must explicitly state that,
-e.g. C<+?name>.
+Mixed use of named and positional parameters.
 
 =item *
 
-The parameter "slurps" the rest of the arguments into an array reference,
-e.g. C<*name>.  It is not assumed to be optional unless there is a
-question-mark before it.
+Type checking and coercion through callbacks.
+
+=item *
+
+Dyanmic paramaters configured from callbacks.
+
+=item *
+
+Memoization of L<Simple Paramater Templates>.
 
 =back
 
-C<%values> contains the keys of specified arguments, with their values.
-It may also contain additional keys which begin with an underscore.
-These are internal/diagnostic values:
+Usage is as follows:
+
+  %vals = Params( @template )->( @args );
+
+The C<@template> specifies the names of parameters in the order that they
+should be given in subroutine calls, and C<@args> is the list of argument
+to be parsed: usually you just specify the void list C<@_>.
+
+The keys in the returned hash C<%vals> are assigned to the appropriate
+arguments, irrespective of calling style.
+
+The values may also contain additional keys which begin with an
+underscore.  These are internal/diagnostic values:
 
 =over
 
 =item _named
 
-True if the parameters were treated as named, false if positional.
+True if the parameters were treated as named, false if positional. See
+L</CAVEATS> below.
 
 =back
+
+One can use simple or complex parameter templates.
+
+=head2 Simple Paramater Templates
+
+Simple parameter templates contain a list of key names in the order
+that they are expected for positional calls:
+
+  sub my_sub {
+    %vals = Params(qw( first second third ))->args(@_);
+     ...
+  }
+
+Calling the subroutine with the following
+
+  my_sub(1, 2, 3);
+
+sets the values
+
+  %vals = (
+    first  => 1,
+    second => 2,
+    third  => 3
+  );
+
+Paramaters are required by default.  To make a parameter optional,
+add a question mark before it:
+
+  %vals = Params(qw( first second ?third ))->args(@_);
+
+Note that no required parameters may follow an optional parameter.
+
+If one wants to "slurp" all remaining arguments into one value, add an
+asterisk before it:
+
+  %vals = Params(qw( first *second ))->args(@_);
+
+So the above example call would set the values
+
+  %vals = (
+    first  => 1,
+    second => [ 2, 3 ]
+  );
+
+Note that the slurp argument is required unless it also includes a
+question-mark:
+
+  %vals = Params(qw( first *?second ))->args(@_);
+
+You can also mark options as being allowed when called with named
+parameters only by adding a plus sign before them:
+
+  %vals = Params(qw( common +?obscure +?strange +?weird ))->args(@_);
+
+This is useful when there are many options which are rarely needed
+(and too awkward to use in positional calling), or may have dangerous
+side effects if accidentally specified with a positional calling
+style.  (The order of named-only parameters does not matter.)
+
+You can also enforce named-only calling conventions on a subroutine
+by omitting question-marks from at least one parameter:
+
+  %vals = Params(qw( +first +second ))->args(@_);
+
+As of version 0.04, default values can also be specified:
+
+  %vals = Params(qw( first=1 second=2 ))->args(@_);
+
+Defaults can be delimited with quotes:
+
+  %vals = Params( 'first="some string"' ))->args(@_);
+
+You can also specify aliases by separating them with a vertical bar:
+
+  %vals = Params(qw( hour|hh minute|min|mm seconds|sec|ss ))->args(@_);
+
+All named parameter calls using aliases will be stored using the
+first name.
+
+In general use of aliases are I<not> recommended for subroutines. (This
+feature is a hook for implementing script-wide "getopts"-like functions.)
+
+Names may be called with an optional initial dash, as with
+L<Getargs::Mixed>:
+
+  my_sub( -first => 1, -second => 2 );
+
+To improve performance, C<Params> memoizes simple paramater templates
+when they are parsed.  Memoization is per template, not per subroutine.
+
+=head2 Complex Paramater Templates
+
+You may use more complex templates if you need to specify additional
+information, such as callbacks:
+
+  %vals = Params(
+    {
+      name     => "first",
+      required => 1,
+      callback => sub { ... },
+      comment  => "first paramater",
+    },
+    {
+      name     => "next",
+      slurp    => 1,
+      comment  => "second paramater",
+    },
+  )->args(@_);
+
+Each parameter is specified by a hash reference with the following keys:
+
+=over
+
+=item name
+
+The name of the paramater. May include aliases, separated by vertical bars.
+
+=item required
+
+The paramater is required if true.
+
+=item default
+
+A default value of the parameter.
+
+=item slurp
+
+This paramater slurps the remaining arguments if true. The paramater
+will be an array reference.
+
+=item name_only
+
+This paramater may be specified using named-calls only if true.
+
+=item type
+
+Not yet implemented.
+
+=item callback
+
+An optional callback which validates and coerces the paramater.  The
+callback is passed the parameter-parsing object, the name of the
+paramater, and the value:
+
+  callback => sub {
+    my ($self, $name, $value) = @_;
+    ...
+    return $value;
+  },
+
+The C<$name> is the primary name for the paramater, and not any
+aliases which might have been used.
+
+It is expected to return the coerced value, or die if there is a
+problem:
+
+  callback => sub {
+    my ($self, $name, $value, $hashref) = @_;
+    die "$name must be >= 0"
+      if ($value < 0);
+    return $value || 1;
+  },
+
+Callbacks can also update the acceptable parameters:
+
+  callback => sub {
+    my ($self, $name, $value, $hashref) = @_;
+    if ($value eq "zip") {
+      $self->set_param( {
+        name    => "compression_level",
+        default => 6, 
+      } );
+    }
+    return $value;
+  },
+
+One can use this to change or add new named paramaters based on the
+values of existing paramaters.
+
+Note that dynamically-added paramaters cannot dynamically add other
+paramaters (at least not in this version).
+
+The C<$hashref> is a reference to the values being returned.  One may
+not be able to rely on a specific paramater being set before the
+callback is executed, however.
+
+Note that the order that callbacks are called is not determined, so do
+not rely on one callback being called before another.
+
+Do not call any internal methods aside from those documented here, as they
+do not have a defined behavior and may change in future versions.
+
+=item comment
+
+An optional comment describing the field. This is currently unused but
+may be displayed in error messages in future versions.
+
+=back
+
+=head2 Compatability with Previous Versions
+
+Note that the formatting for simple parameter templaces has changed
+since version 0.03, and the complex paramater templates were not
+implemented until version 0.04, so it is best to specify a minimum
+version in use statements
+
+  use Params::Smart 0.04;
 
 =head1 CAVEATS
 
@@ -249,15 +623,22 @@ improved).
 To diagnose potential bugs, or to enforce named or positional calling
 one can check the L</_named> parameter.
 
+A future version might make use of Perl internals to get around this
+problem.
+
 =head1 SEE ALSO
 
-This module is similar in function to L<Getargs::Mixed> but does not
-require named parameters to have an initial dash ('-').  It also has 
-some additional features.
+This module is superficially similar in function to L<Getargs::Mixed>
+but does not require named parameters to have an initial dash ('-').
+
+L<Sub::NamedParams> will create a named-parameter wrapper around subroutines
+which use positional parameters.
 
 The syntax of the paramater templates is inspired by L<Perl6::Subs>,
 though not necessarily compatible. (See also I<Apocalypse 6> in
 L<Perl6::Bible>).
+
+L<Sub::Usage> inspired the error-messages returned by calls to arg().
 
 L<Params::Validate> is useful for (additional) parameter validation
 beyond what this module is capable of.
