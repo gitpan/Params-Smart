@@ -12,7 +12,7 @@ require Exporter;
 our @ISA    = qw( Exporter );
 our @EXPORT = qw( Params );
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub parse_param {
   my $self  = shift;
@@ -638,7 +638,7 @@ head1 REVISION HISTORY
 
 A brief list of changes since the previous release:
 
-=for readme include file="Changes" start="0.05" stop="0.04" type="text"
+=for readme include file="Changes" start="0.06" stop="0.04" type="text"
 
 For a detailed history see the F<Changes> file included in this distribution.
 
@@ -683,25 +683,25 @@ problem.
 
 =head1 SEE ALSO
 
-This module is superficially similar in function to Getargs::Mixed
+This module is superficially similar in function to LMGetargs::Mixed>
 but does not require named parameters to have an initial dash ('-').
 
-Class::NamedParams provides a framework for implementing named
+L<Class::NamedParams> provides a framework for implementing named
 parameters in classes.
 
-Sub::NamedParams will create a named-parameter wrapper around subroutines
+L<Sub::NamedParams> will create a named-parameter wrapper around subroutines
 which use positional parameters.
 
-The syntax of the paramater templates is inspired by Perl6::Subs,
+The syntax of the paramater templates is inspired by L<Perl6::Subs>,
 though not necessarily compatible. (See also I<Apocalypse 6> in
-Perl6::Bible).
+L<Perl6::Bible>).
 
-Sub::Usage inspired the error-messages returned by calls to arg().
+L<Sub::Usage> inspired the error-messages returned by calls to arg().
 
-Params::Validate is useful for (additional) parameter validation
+L<Params::Validate> is useful for (additional) parameter validation
 beyond what this module is capable of.
 
-Class::ParmList provides a framework for paramater validation as well.
+L<Class::ParmList> provides a framework for paramater validation as well.
 
 =end readme
 

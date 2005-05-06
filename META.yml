@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Params-Smart
-version: 0.05
+version: 0.06
 author:
   - Robert Rothenberg <rrwo at cpan.org>
 abstract: |-
@@ -11,11 +11,11 @@ requires:
   Regexp::Common: 1.8
   perl: 5.6.0
 recommends:
-  Pod::Readme: 0
+  Pod::Readme: 0.02
 build_requires:
   Test::More: 0
 provides:
   Params::Smart:
     file: lib/Params/Smart.pm
-    version: 0.05
+    version: 0.06
 generated_by: Module::Build version 0.261

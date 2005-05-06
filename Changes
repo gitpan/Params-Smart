@@ -1,5 +1,8 @@
 Revision history for Perl extension Params::Smart.
 
+0.06  Fri May  6 2005
+	- corrected stupid glitch from Pod::Readme
+
 0.05  Fri May  6 2005
 	- removed links to module manpages because the pod2text function
 	  stupidly changes L<Module> to "the Module manpage"

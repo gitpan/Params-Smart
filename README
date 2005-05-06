@@ -46,8 +46,7 @@ DESCRIPTION
 
     *   Dyanmic paramaters configured from callbacks.
 
-    *   Memoization of the Simple Paramater Templates entry elsewhere in
-        this document.
+    *   Memoization of Simple Paramater Templates.
 
   Compatability with Previous Versions
 
@@ -62,6 +61,9 @@ DESCRIPTION
 
     A brief list of changes since the previous release:
 
+    0.06  Fri May  6 2005
+            - corrected stupid glitch from Pod::Readme
+    
     0.05  Fri May  6 2005
             - removed links to module manpages because the pod2text function
               stupidly changes L<Module> to "the Module manpage"
@@ -77,8 +79,8 @@ CAVEATS
     likely additional features will be added.
 
 SEE ALSO
-    This module is superficially similar in function to Getargs::Mixed but
-    does not require named parameters to have an initial dash ('-').
+    This module is superficially similar in function to LMGetargs::Mixed>
+    but does not require named parameters to have an initial dash ('-').
 
     Class::NamedParams provides a framework for implementing named
     parameters in classes.
