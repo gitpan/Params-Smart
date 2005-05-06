@@ -1,5 +1,12 @@
 Revision history for Perl extension Params::Smart.
 
+0.05  Fri May  6 2005
+	- removed links to module manpages because the pod2text function
+	  stupidly changes L<Module> to "the Module manpage"
+	- fixed bug that caused warnings in Regexp::Common
+	- redid POD to use Pod::Readme
+	- updated SEE ALSO section
+
 0.04  Thu Apr 28 2005
 	- rewrote documentation
 	- uses Regexp::Common

@@ -12,7 +12,7 @@ require Exporter;
 our @ISA    = qw( Exporter );
 our @EXPORT = qw( Params );
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub parse_param {
   my $self  = shift;
@@ -39,7 +39,7 @@ sub parse_param {
     my $def  = substr($4,1) if (defined $4);
 
     if ((defined $def) &&
-	($def =~ /$RE{delimited}{-delim=>'"'}{-esc}{-keep}/)) {
+	($def =~ /$RE{quoted}{-keep}/)) {
       $def = $3;
     }
 
@@ -330,6 +330,35 @@ __END__
 
 Params::Smart - use both positional and named arguments in a subroutine
 
+=begin readme
+
+=head1 REQUIREMENTS
+
+The following non-core modules are required:
+
+  Regexp::Common
+
+=head1 INSTALLATION
+
+Installation can be done using the traditional Makefile.PL or the newer
+Build.PL methods.
+
+Using Makefile.PL:
+
+  perl Makefile.PL
+  make test
+  make install
+
+(On Windows platforms you should use C<nmake> instead.)
+
+Using Build.PL (if you have Module::Build installed):
+
+  perl Build.PL
+  perl Build test
+  perl Build install
+
+=end readme
+
 =head1 SYNOPSIS
 
   use Params::Smart 0.04;
@@ -366,6 +395,8 @@ Dyanmic paramaters configured from callbacks.
 Memoization of L<Simple Paramater Templates>.
 
 =back
+
+=for readme stop
 
 Usage is as follows:
 
@@ -588,6 +619,8 @@ may be displayed in error messages in future versions.
 
 =back
 
+=for readme continue
+
 =head2 Compatability with Previous Versions
 
 Note that the formatting for simple parameter templaces has changed
@@ -597,10 +630,28 @@ version in use statements
 
   use Params::Smart 0.04;
 
+=for readme stop
+
+=begin readme
+
+head1 REVISION HISTORY
+
+A brief list of changes since the previous release:
+
+=for readme include file="Changes" start="0.05" stop="0.04" type="text"
+
+For a detailed history see the F<Changes> file included in this distribution.
+
+=end readme
+
+=for readme continue
+
 =head1 CAVEATS
 
 I<This is an experimental module, and the interface may change.> More
 likely additional features will be added.
+
+=for readme stop
 
 Because Perl5 treats hashes as lists, this module attempts to interpret
 the arguments as a hash of named parameters first.  If some hash keys
@@ -626,22 +677,33 @@ one can check the L</_named> parameter.
 A future version might make use of Perl internals to get around this
 problem.
 
+=for readme continue
+
+=begin readme
+
 =head1 SEE ALSO
 
-This module is superficially similar in function to L<Getargs::Mixed>
+This module is superficially similar in function to Getargs::Mixed
 but does not require named parameters to have an initial dash ('-').
 
-L<Sub::NamedParams> will create a named-parameter wrapper around subroutines
+Class::NamedParams provides a framework for implementing named
+parameters in classes.
+
+Sub::NamedParams will create a named-parameter wrapper around subroutines
 which use positional parameters.
 
-The syntax of the paramater templates is inspired by L<Perl6::Subs>,
+The syntax of the paramater templates is inspired by Perl6::Subs,
 though not necessarily compatible. (See also I<Apocalypse 6> in
-L<Perl6::Bible>).
+Perl6::Bible).
 
-L<Sub::Usage> inspired the error-messages returned by calls to arg().
+Sub::Usage inspired the error-messages returned by calls to arg().
 
-L<Params::Validate> is useful for (additional) parameter validation
+Params::Validate is useful for (additional) parameter validation
 beyond what this module is capable of.
+
+Class::ParmList provides a framework for paramater validation as well.
+
+=end readme
 
 =head1 AUTHOR
 

@@ -10,6 +10,7 @@ my $build = Module::Build->new
        'Regexp::Common'   => 1.8,
      },
      recommends => {
+       'Pod::Readme'      => 0,
 #        'Test::Pod::Coverage' => 0,
 #        'Test::Pod'      => 1.00,
 #        'Test::Prereq'   => 0,

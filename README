@@ -6,23 +6,21 @@ REQUIREMENTS
 
       Regexp::Common
 
-Installation
-    Installation can be done using the traditional Makefile.PL or the
-    newer Build.PL methods.
+INSTALLATION
+    Installation can be done using the traditional Makefile.PL or the newer
+    Build.PL methods.
 
     Using Makefile.PL:
 
       perl Makefile.PL
-      make
       make test
       make install
 
-    (On Windows platforms you should use nmake instead.)
+    (On Windows platforms you should use `nmake' instead.)
 
     Using Build.PL (if you have Module::Build installed):
 
       perl Build.PL
-      perl Build
       perl Build test
       perl Build install
 
@@ -48,30 +46,31 @@ DESCRIPTION
 
     *   Dyanmic paramaters configured from callbacks.
 
-    *   Memoization of "Simple Paramater Templates".
+    *   Memoization of the Simple Paramater Templates entry elsewhere in
+        this document.
 
-    See the module documentation for more information.
+  Compatability with Previous Versions
 
-REVISION HISTORY
-    Changes since previous release:
+    Note that the formatting for simple parameter templaces has changed
+    since version 0.03, and the complex paramater templates were not
+    implemented until version 0.04, so it is best to specify a minimum
+    version in use statements
 
-    0.04  Thu Apr 28 2005
-	- rewrote documentation
-	- uses Regexp::Common
-	- defaults can have double-quote-delimited strings
-	- changed format of error messages
-	- added friendlier usage message on error
-	- parameter name aliases allowed
-	- callbacks can modify parameters
-	- use custom memoization due to issues with callbacks
-	- implemented callbacks
-	- misc optimizations/tweaks
-        - added hashref params as alternative to strings
-	- added parse_param and set_param methods
-	- additional information documented
-	- fixed formatting mistake in POD
+      use Params::Smart 0.04;
 
-    See the Changes file included with the distribution.
+    head1 REVISION HISTORY
+
+    A brief list of changes since the previous release:
+
+    0.05  Fri May  6 2005
+            - removed links to module manpages because the pod2text function
+              stupidly changes L<Module> to "the Module manpage"
+            - fixed bug that caused warnings in Regexp::Common
+            - redid POD to use Pod::Readme
+            - updated SEE ALSO section
+
+    For a detailed history see the Changes file included in this
+    distribution.
 
 CAVEATS
     *This is an experimental module, and the interface may change.* More
@@ -80,6 +79,9 @@ CAVEATS
 SEE ALSO
     This module is superficially similar in function to Getargs::Mixed but
     does not require named parameters to have an initial dash ('-').
+
+    Class::NamedParams provides a framework for implementing named
+    parameters in classes.
 
     Sub::NamedParams will create a named-parameter wrapper around
     subroutines which use positional parameters.
@@ -92,12 +94,15 @@ SEE ALSO
     Params::Validate is useful for (additional) parameter validation beyond
     what this module is capable of.
 
+    Class::ParmList provides a framework for paramater validation as well.
+
 AUTHOR
     Robert Rothenberg <rrwo at cpan.org>
 
   Suggestions and Bug Reporting
+
     Feedback is always welcome. Please use the CPAN Request Tracker at
-    <http://rt.cpan.org> to submit bug reports.
+    http://rt.cpan.org to submit bug reports.
 
 LICENSE
     Copyright (c) 2005 Robert Rothenberg. All rights reserved. This program
