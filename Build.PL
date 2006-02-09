@@ -18,7 +18,7 @@ my $build = Module::Build->new
      build_requires => {
        'Test::More'     => 0,
      },
-     create_readme      => 0,
+     create_readme      => ($Module::Build::VERSION >= 0.2702),
      create_makefile_pl => 'traditional',
      dist_author        => 'Robert Rothenberg <rrwo at cpan.org>',
      sign               => 1,

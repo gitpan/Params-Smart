@@ -9,10 +9,12 @@ use Regexp::Common qw( delimited );
 
 require Exporter;
 
-our @ISA    = qw( Exporter );
-our @EXPORT = qw( Params );
+our @ISA         = qw( Exporter );
+our @EXPORT      = qw( Params );
+our @EXPORT_OK   = qw( Params ParamsNC );
+our %EXPORT_TAGS = ( all => \@EXPORT_OK ); 
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 sub parse_param {
   my $self  = shift;
@@ -26,7 +28,7 @@ sub parse_param {
     };
     foreach (qw( 
          name type default required name_only slurp
-         callback comment
+         callback comment needs
      )) {
       $info->{$_} = $param->{$_};
     }
@@ -63,6 +65,7 @@ sub parse_param {
 	slurp     => (($mod =~ /\*/) || 0),
         callback  => undef, # sub { return $_[2]; },
         comment   => $name,
+        needs     => undef,
         _parsed   => 1,
       };
       return $info;
@@ -132,7 +135,7 @@ sub new {
 	croak "a required parameter cannot follow an optional parameter";
       }
       if ($info->{name_only} && $info->{slurp}) {
-	croak "a paramater cannot be named_only and a slurp";
+	croak "a parameter cannot be named_only and a slurp";
       }
       if ($last && ($info->{_parsed} != $last->{_parsed})) {
         croak "cannot mix parsed and non-parsed parameters";
@@ -158,16 +161,12 @@ sub new {
 my %Memoization = ( );
 
 sub Params {
+  my $key = join $;, map { $_||""} (caller);
+  return  $Memoization{$key} ||= __PACKAGE__->new(@_);
+}
 
-  # It doesn't seem worth serialising a list of hashes here. FNORJD!
-  # We cannot mix and match hash refs with strings in Params list.
-
-  if (ref $_[0]) {
-    return  __PACKAGE__->new(@_);
-  } else {
-    my $key = join $;, @_;
-    return $Memoization{$key} ||= __PACKAGE__->new(@_);
-  }
+sub ParamsNC {
+  return __PACKAGE__->new(@_);
 }
 
 # Note: usage does not display aliases, nor named_only parameters
@@ -213,6 +212,8 @@ sub _run_callback {
 
 sub args {
   my $self = shift;
+
+  # TODO - return a reference to $self in the values
 
   my %vals = ( );
 
@@ -267,7 +268,7 @@ sub args {
     }
 
     if ($named && (keys %unknown) && (keys %vals)) {
-      $self->_usage("unrecognized paramaters: " .
+      $self->_usage("unrecognized parameters: " .
 	join(" ", map { "\"$_\"" } keys %unknown), $named);
     }
     elsif ($named && (keys %unknown)) {
@@ -312,6 +313,17 @@ sub args {
     }
     if ($info->{required} && !exists($vals{$name})) {
       $self->_usage("missing required parameter \"$name\"", $named);
+    }
+    if (defined $info->{needs}) {
+      # convert a scalar into a list with one element
+      if (!ref $info->{needs}) { $info->{needs} = [ $info->{needs} ] }
+
+      foreach my $dep (@{ $info->{needs} }) {
+        unless (exists($vals{$dep})) {
+          $self->_usage("missing required parameter \"$dep\" (needed by \"$name\")", $named);
+        }
+      }
+
     }
   }
 
@@ -374,7 +386,8 @@ Using Build.PL (if you have Module::Build installed):
 
 =head1 DESCRIPTION
 
-This module provides "smart" parameter handling for subroutines without having to use a changed syntax or source filters. Features include:
+This module provides "smart" parameter handling for subroutines without
+having to use a changed syntax or source filters. Features include:
 
 =over
 
@@ -388,11 +401,11 @@ Type checking and coercion through callbacks.
 
 =item *
 
-Dyanmic paramaters configured from callbacks.
+Dyanmic parameters configured from callbacks.
 
 =item *
 
-Memoization of L<Simple Paramater Templates>.
+Memoization of parameter templates.
 
 =back
 
@@ -400,7 +413,10 @@ Memoization of L<Simple Paramater Templates>.
 
 Usage is as follows:
 
-  %vals = Params( @template )->( @args );
+  sub my_sub {
+    %vals = Params( @template )->args( @args );
+    ...
+  }
 
 The C<@template> specifies the names of parameters in the order that they
 should be given in subroutine calls, and C<@args> is the list of argument
@@ -408,6 +424,14 @@ to be parsed: usually you just specify the void list C<@_>.
 
 The keys in the returned hash C<%vals> are assigned to the appropriate
 arguments, irrespective of calling style.
+
+Smart parameters can be used for method calls:
+
+  sub my_method {
+    my $self = shift;
+    %vals = Params( @template )->args( @args );
+    ...
+  }
 
 The values may also contain additional keys which begin with an
 underscore.  These are internal/diagnostic values:
@@ -421,9 +445,21 @@ L</CAVEATS> below.
 
 =back
 
-One can use simple or complex parameter templates.
+To improve performance, C<Params> memoizes parameter templates
+when they are parsed, based on where the call to C<Params> was
+made.
 
-=head2 Simple Paramater Templates
+This may be problematic if templates are changed dynamically. To
+override memoization, use ParamsNC function:
+
+  %vals = ParamsNC( @template )->args( @_ );
+
+
+There are two styles of templates, L</Simple Parameter Templates> with a Perl6-like
+syntax, and L</Complex Parameter Templates> which allow more options to be specified
+using hashes.
+
+=head2 Simple Parameter Templates
 
 Simple parameter templates contain a list of key names in the order
 that they are expected for positional calls:
@@ -445,7 +481,7 @@ sets the values
     third  => 3
   );
 
-Paramaters are required by default.  To make a parameter optional,
+Parameters are required by default.  To make a parameter optional,
 add a question mark before it:
 
   %vals = Params(qw( first second ?third ))->args(@_);
@@ -507,10 +543,7 @@ L<Getargs::Mixed>:
 
   my_sub( -first => 1, -second => 2 );
 
-To improve performance, C<Params> memoizes simple paramater templates
-when they are parsed.  Memoization is per template, not per subroutine.
-
-=head2 Complex Paramater Templates
+=head2 Complex Parameter Templates
 
 You may use more complex templates if you need to specify additional
 information, such as callbacks:
@@ -520,12 +553,12 @@ information, such as callbacks:
       name     => "first",
       required => 1,
       callback => sub { ... },
-      comment  => "first paramater",
+      comment  => "first parameter",
     },
     {
       name     => "next",
       slurp    => 1,
-      comment  => "second paramater",
+      comment  => "second parameter",
     },
   )->args(@_);
 
@@ -535,11 +568,11 @@ Each parameter is specified by a hash reference with the following keys:
 
 =item name
 
-The name of the paramater. May include aliases, separated by vertical bars.
+The name of the parameter. May include aliases, separated by vertical bars.
 
 =item required
 
-The paramater is required if true.
+The parameter is required if true.
 
 =item default
 
@@ -547,22 +580,27 @@ A default value of the parameter.
 
 =item slurp
 
-This paramater slurps the remaining arguments if true. The paramater
+This parameter slurps the remaining arguments if true. The parameter
 will be an array reference.
 
 =item name_only
 
-This paramater may be specified using named-calls only if true.
+This parameter may be specified using named-calls only if true.
+
+=item needs
+
+This parameter needs these other parameters to be specified (either as a
+list reference, or a string for a single required parameter).
 
 =item type
 
-Not yet implemented.
+Not yet implemented. Use the callback to validate the value.
 
 =item callback
 
-An optional callback which validates and coerces the paramater.  The
+An optional callback which validates and coerces the parameter.  The
 callback is passed the parameter-parsing object, the name of the
-paramater, and the value:
+parameter, and the value:
 
   callback => sub {
     my ($self, $name, $value) = @_;
@@ -570,7 +608,7 @@ paramater, and the value:
     return $value;
   },
 
-The C<$name> is the primary name for the paramater, and not any
+The C<$name> is the primary name for the parameter, and not any
 aliases which might have been used.
 
 It is expected to return the coerced value, or die if there is a
@@ -590,20 +628,24 @@ Callbacks can also update the acceptable parameters:
     if ($value eq "zip") {
       $self->set_param( {
         name    => "compression_level",
-        default => 6, 
+        default => 6,
       } );
     }
     return $value;
   },
 
-One can use this to change or add new named paramaters based on the
-values of existing paramaters.
+One can use this to change or add new named parameters based on the
+values of existing parameters.  However, one should use C<ParamsNC>
+so that the modified template is not cached.
 
-Note that dynamically-added paramaters cannot dynamically add other
-paramaters (at least not in this version).
+In many cases you should use the L</needs> option and avoid dynamically
+updating the parameters.
+
+Note that dynamically-added parameters cannot dynamically add other
+parameters (at least not in this version).
 
 The C<$hashref> is a reference to the values being returned.  One may
-not be able to rely on a specific paramater being set before the
+not be able to rely on a specific parameter being set before the
 callback is executed, however.
 
 Note that the order that callbacks are called is not determined, so do
@@ -623,8 +665,8 @@ may be displayed in error messages in future versions.
 
 =head2 Compatability with Previous Versions
 
-Note that the formatting for simple parameter templaces has changed
-since version 0.03, and the complex paramater templates were not
+Note that the formatting for simple parameter templates has changed
+since version 0.03, and the complex parameter templates were not
 implemented until version 0.04, so it is best to specify a minimum
 version in use statements
 
@@ -634,24 +676,17 @@ version in use statements
 
 =begin readme
 
-head1 REVISION HISTORY
+=head1 REVISION HISTORY
 
 A brief list of changes since the previous release:
 
-=for readme include file="Changes" start="0.06" stop="0.04" type="text"
+=for readme include file="Changes" start="0.07" stop="0.06" type="text"
 
 For a detailed history see the F<Changes> file included in this distribution.
 
 =end readme
 
-=for readme continue
-
 =head1 CAVEATS
-
-I<This is an experimental module, and the interface may change.> More
-likely additional features will be added.
-
-=for readme stop
 
 Because Perl5 treats hashes as lists, this module attempts to interpret
 the arguments as a hash of named parameters first.  If some hash keys
@@ -679,11 +714,9 @@ problem.
 
 =for readme continue
 
-=begin readme
-
 =head1 SEE ALSO
 
-This module is superficially similar in function to LMGetargs::Mixed>
+This module is superficially similar in function to L<Getargs::Mixed>
 but does not require named parameters to have an initial dash ('-').
 
 L<Class::NamedParams> provides a framework for implementing named
@@ -692,7 +725,7 @@ parameters in classes.
 L<Sub::NamedParams> will create a named-parameter wrapper around subroutines
 which use positional parameters.
 
-The syntax of the paramater templates is inspired by L<Perl6::Subs>,
+The syntax of the parameter templates is inspired by L<Perl6::Subs>,
 though not necessarily compatible. (See also I<Apocalypse 6> in
 L<Perl6::Bible>).
 
@@ -701,9 +734,7 @@ L<Sub::Usage> inspired the error-messages returned by calls to arg().
 L<Params::Validate> is useful for (additional) parameter validation
 beyond what this module is capable of.
 
-L<Class::ParmList> provides a framework for paramater validation as well.
-
-=end readme
+L<Class::ParmList> provides a framework for parameter validation as well.
 
 =head1 AUTHOR
 
@@ -716,7 +747,7 @@ L<http://rt.cpan.org> to submit bug reports.
 
 =head1 LICENSE
 
-Copyright (c) 2005 Robert Rothenberg. All rights reserved.
+Copyright (c) 2005,2006 Robert Rothenberg. All rights reserved.
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 

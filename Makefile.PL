@@ -2,14 +2,15 @@
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
+          'PL_FILES' => {},
+          'INSTALLDIRS' => 'site',
           'NAME' => 'Params::Smart',
+          'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/Params/Smart.pm',
           'PREREQ_PM' => {
-                           'Carp' => '0',
+                           'Test::More' => 0,
                            'Regexp::Common' => '1.8',
-                           'Test::More' => '0'
-                         },
-          'INSTALLDIRS' => 'site',
-          'PL_FILES' => {}
+                           'Carp' => 0
+                         }
         )
 ;
