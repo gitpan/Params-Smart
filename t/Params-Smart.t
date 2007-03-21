@@ -2,11 +2,11 @@
 
 use strict;
 
-use Test::More tests => 50;
+use Test::More tests => 52;
 
 # TODO - test errors in defining params templates, and errors in invalid args
 
-use_ok('Params::Smart', 0.07, ':all' );
+use_ok('Params::Smart', 0.08, ':all' );
 
 my @Internal = qw( _named );
 
@@ -38,6 +38,13 @@ my @Internal = qw( _named );
   ok(!delete $Vals{_named});
   ok(eq_hash( \%Expected, \%Vals ), "positional parameters");
 
+  %Vals = Params(@params)->args( undef, 2 );
+  ok(!delete $Vals{_named});
+  my $t = $Expected{foo}; $Expected{foo} = undef;
+  #foreach my $key (keys %Vals) { print STDERR "\x23 $key=$Vals{$key} $Expected{$key}\n"; }
+  ok(eq_hash( \%Expected, \%Vals ), "positional parameters with undef");
+  $Expected{foo} = $t;
+
   delete $Expected{bar};
   %Vals = Params(@params)->args( 1 );
   ok(!delete $Vals{_named});
@@ -47,6 +54,8 @@ my @Internal = qw( _named );
   %Vals = Params(@params)->args();
   ok(delete $Vals{_named}); # defaults to true if no args
   ok(eq_hash( \%Expected, \%Vals ), "positional parameters");
+
+
 }
 
 {

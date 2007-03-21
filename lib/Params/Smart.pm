@@ -14,7 +14,7 @@ our @EXPORT      = qw( Params );
 our @EXPORT_OK   = qw( Params ParamsNC );
 our %EXPORT_TAGS = ( all => \@EXPORT_OK ); 
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 sub parse_param {
   my $self  = shift;
@@ -220,6 +220,12 @@ sub args {
   # $vals{_args} = [ @_ ];
 
   my $named = !(@_ % 2);
+
+  # For even number positional parameter with undef in them. 
+  for (my $i=0; ($named && ($i < @_)); $i += 2) {
+    if (!defined $_[$i]) { $named = 0 }
+  }
+
   if ($named) {
     my %unknown = ( );
     my $i = 0;
@@ -425,6 +431,11 @@ to be parsed: usually you just specify the void list C<@_>.
 The keys in the returned hash C<%vals> are assigned to the appropriate
 arguments, irrespective of calling style.
 
+Names may be called with an optional initial dash, as with
+L<Getargs::Mixed>:
+
+  my_sub( -first => 1, -second => 2 );
+
 Smart parameters can be used for method calls:
 
   sub my_method {
@@ -453,7 +464,6 @@ This may be problematic if templates are changed dynamically. To
 override memoization, use ParamsNC function:
 
   %vals = ParamsNC( @template )->args( @_ );
-
 
 There are two styles of templates, L</Simple Parameter Templates> with a Perl6-like
 syntax, and L</Complex Parameter Templates> which allow more options to be specified
@@ -537,11 +547,6 @@ first name.
 
 In general use of aliases are I<not> recommended for subroutines. (This
 feature is a hook for implementing script-wide "getopts"-like functions.)
-
-Names may be called with an optional initial dash, as with
-L<Getargs::Mixed>:
-
-  my_sub( -first => 1, -second => 2 );
 
 =head2 Complex Parameter Templates
 
@@ -680,7 +685,7 @@ version in use statements
 
 A brief list of changes since the previous release:
 
-=for readme include file="Changes" start="0.07" stop="0.06" type="text"
+=for readme include file="Changes" start="0.08" stop="0.07" type="text"
 
 For a detailed history see the F<Changes> file included in this distribution.
 
@@ -747,7 +752,7 @@ L<http://rt.cpan.org> to submit bug reports.
 
 =head1 LICENSE
 
-Copyright (c) 2005,2006 Robert Rothenberg. All rights reserved.
+Copyright (c) 2005-2007 Robert Rothenberg. All rights reserved.
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 

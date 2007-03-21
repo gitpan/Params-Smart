@@ -60,16 +60,10 @@ DESCRIPTION
 REVISION HISTORY
     A brief list of changes since the previous release:
 
-    0.07  Thu Feb  9 2006
-            - added "needs" option for complex paramater templates
-            - added ':all' export tag
-            - added ParamsNC function, and updated tests to check
-            - calls to Param are memoized by caller information rather
-              than parameter
-            - added note about method parameters in the documentation
-            - SEE ALSO section included in POD, not just the README
-            - corrected typos in documentation and examples
-            - corrected typos in error messages
+    0.08  Wed Mar 21 2007
+            - added case where undef value used in positional parameter
+                  (thanks to Rick Westerman)
+            - minor reorganization of POD
 
     For a detailed history see the Changes file included in this
     distribution.
@@ -127,7 +121,7 @@ AUTHOR
     http://rt.cpan.org to submit bug reports.
 
 LICENSE
-    Copyright (c) 2005,2006 Robert Rothenberg. All rights reserved. This
+    Copyright (c) 2005-2007 Robert Rothenberg. All rights reserved. This
     program is free software; you can redistribute it and/or modify it under
     the same terms as Perl itself.
 
